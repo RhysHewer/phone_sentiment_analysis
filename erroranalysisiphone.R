@@ -31,7 +31,8 @@ g.confMatrix <- ggplot(confMatrix, aes(Reference, Prediction, fill = Freq)) +
         coord_equal() +
         scale_fill_distiller(palette = "Blues", direction=1) +
         guides(fill=F) +
-        labs(title = "Confusion Matrix: iPhone Sentiment") +
+        labs(title = "Overpredicting Sentiment 4",
+             subtitle = "Confusion Matrix: iPhone Sentiment") +
         geom_text(aes(label = Freq), color="black")
 g.confMatrix
 
