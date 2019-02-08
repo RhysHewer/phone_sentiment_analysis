@@ -8,11 +8,17 @@
 #load libraries
 source("scripts/libraries.R")
 
-##### VISUALISING SENTIMENT DISTRIBUTION - IPHONE #############################
+#load data
+load("output/galtesting.RDS")
+load("output/galLarge.RDS")
+load("output/galData.RDS")
 
 #load Iphone data
 load("output/iptesting.RDS")
 load("output/ipLarge.RDS")
+load("output/ipData.RDS")
+
+##### VISUALISING SENTIMENT DISTRIBUTION - IPHONE #############################
 
 #relative % calculations
 ipOrigSent <- iptesting %>% 
@@ -52,9 +58,7 @@ g.ipSentDist
 
 ##### VISUALISING SENTIMENT DISTRIBUTION - GALAXY #############################
 
-#load data
-load("output/galtesting.RDS")
-load("output/galLarge.RDS")
+
 
 #relative % calculations
 galOrigSent <- galtesting %>% 
@@ -93,7 +97,8 @@ g.galSentDist <- ggplot(galSentDist, aes(sent, perSent, fill = df)) +
 g.galSentDist
 
 
-##### AVG SENTIMENT COMBINED ##################################### 
+
+##### AVG SENTIMENT COMBINED ################################################## 
 
 #mean sentiment for each phone
 numSentIp <- ipLarge$ipSentPreds %>% 
@@ -103,6 +108,16 @@ numSentIp <- ipLarge$ipSentPreds %>%
 numSentGal <- galLarge$galSentPreds %>% 
         as.integer() %>% 
         mean() %>% round(2)
+
+#statistical significance between means (p < 0.5 = significant)
+statSigIp <- ipLarge$ipSentPreds %>% 
+        as.integer()
+
+statSigGal <- galLarge$galSentPreds %>% 
+        as.integer()
+
+statSig <- t.test(statSigIp, statSigGal)
+statSig
 
 #combine to dataframe and plot
 numSent <- c(numSentIp, numSentGal)
@@ -174,3 +189,72 @@ polSentPercent <- prop.table(table(polSent)) *100
 
 polSentMid <- polSentPercent[2] + polSentPercent[3]
 polSentMid %>% round(2)
+
+##### distribution Pos/Neg mentions ###########################################
+
+avgPosSentIp <- median(ipLarge$iphonePos)
+avgPosSentGal <- median(galLarge$galaxyPos)
+avgNegSentIp <- median(ipLarge$iphoneNeg)
+avgNegSentGal <- median(galLarge$galaxyNeg)
+
+##### Information Sparseness ##################################################
+
+#Calculate sparseness per dataset 
+#(sparseness = zero info beyond smartphone mention)
+sparseIpLm <- ipLarge %>% 
+        select(-iphone, -id, -ipSentPreds) %>% 
+        rowSums() %>% 
+        table() %>% 
+        prop.table() *100
+sparseIpLm <- sparseIpLm[[1]]
+sparseIpLm
+
+sparseIpSm <- ipData %>% 
+        select(-iphone, -iphonesentiment) %>% 
+        rowSums() %>% 
+        table() %>% 
+        prop.table() *100
+sparseIpSm <- sparseIpSm[[1]]
+sparseIpSm
+
+sparseGalLm <- galLarge %>% 
+        select(-samsunggalaxy, -id, -galSentPreds) %>% 
+        rowSums() %>% 
+        table() %>% 
+        prop.table() *100
+sparseGalLm <- sparseGalLm[[1]]
+sparseGalLm
+
+sparseGalSm <- galData %>% 
+        select(-samsunggalaxy, -galaxysentiment, -iphone) %>% 
+        rowSums() %>% 
+        table() %>% 
+        prop.table() *100
+sparseGalSm <- sparseGalSm[[1]]
+sparseGalSm
+
+#Combine and plot
+sparsePercent <- c(sparseIpLm, sparseIpSm, sparseGalLm, 0)
+sparseDf <- c("iPhone Large Matrix", "iPhone Small Matrix", 
+              "Galaxy Large Matrix", "Galaxy Small Matrix")
+sparseData <- data.frame(sparseDf, sparsePercent)
+
+g.sparseData <- ggplot(sparseData, aes(sparseDf, sparsePercent, 
+                                       fill = sparseDf)) +
+        geom_col() +
+        theme_hc() +
+        theme(legend.position = "none") +
+        
+        ggtitle("Substantial Sparseness of Data") +
+        xlab("Dataset") +
+        ylab("% Sparseness") +
+        labs(subtitle ="Sparseness of data per dataset") +
+        
+        scale_fill_manual(values = c("#FC440F", "#FC440F", 
+                                     "#15AAEA", "#15AAEA")) +
+        geom_text(aes(label = sparsePercent %>% round(2)),
+                  position  = position_dodge(width = 0.9), 
+                  vjust = -0.25) +
+        theme(axis.text.x=element_text(angle= 30, hjust=1))
+g.sparseData
+
